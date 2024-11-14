@@ -24,7 +24,7 @@ module ticketing::events {
     const EInvalidRefund: u64 = 10;
 
     // Core structs
-    struct Platform has key {
+    public struct Platform has key {
         id: UID,
         admin: address,
         revenue: Balance<SUI>,
@@ -32,7 +32,7 @@ module ticketing::events {
         organizers: LinkedTable<address, OrganizerProfile>
     }
 
-    struct OrganizerProfile has store {
+    public struct OrganizerProfile has store {
         name: String,
         reputation_score: u64,
         total_events: u64,
@@ -41,7 +41,7 @@ module ticketing::events {
         revenue: Balance<SUI>
     }
 
-    struct Event has key {
+    public struct Event has key {
         id: UID,
         organizer: address,
         name: String,
@@ -59,7 +59,7 @@ module ticketing::events {
         nft_benefits: Option<NFTBenefits>
     }
 
-    struct Venue has store {
+    public struct Venue has store {
         name: String,
         location: String,
         sections: LinkedTable<String, Section>,
@@ -67,14 +67,14 @@ module ticketing::events {
         access_rules: vector<String>
     }
 
-    struct Section has store {
+    public struct Section has store {
         name: String,
         capacity: u64,
         remaining: u64,
         price_multiplier: u64
     }
 
-    struct TicketType has store {
+    public struct TicketType has store {
         name: String,
         base_price: u64,
         benefits: vector<String>,
@@ -87,7 +87,7 @@ module ticketing::events {
         valid_until: Option<u64>
     }
 
-    struct Ticket has key {
+    public struct Ticket has key {
         id: UID,
         event_id: ID,
         ticket_type: String,
@@ -102,14 +102,14 @@ module ticketing::events {
         metadata: LinkedTable<String, String>
     }
 
-    struct TransferRecord has store {
+    public struct TransferRecord has store {
         from: address,
         to: address,
         price: u64,
         timestamp: u64
     }
 
-    struct PromoCode has store {
+    public struct PromoCode has store {
         code: String,
         discount_percentage: u64,
         max_uses: u64,
@@ -118,7 +118,7 @@ module ticketing::events {
         specific_ticket_types: Option<vector<String>>
     }
 
-    struct DynamicPricing has store {
+    public struct DynamicPricing has store {
         base_multiplier: u64,
         time_multipliers: LinkedTable<u64, u64>,
         demand_multipliers: LinkedTable<u64, u64>,
@@ -126,14 +126,14 @@ module ticketing::events {
         max_price: u64
     }
 
-    struct NFTBenefits has store {
+    public struct NFTBenefits has store {
         collection_ids: vector<ID>,
         discount_percentage: u64,
         extra_benefits: vector<String>,
         priority_access: bool
     }
 
-    struct AttendeeProfile has key {
+    public struct AttendeeProfile has key {
         id: UID,
         address: address,
         attendance_history: LinkedTable<ID, AttendanceRecord>,
@@ -142,7 +142,7 @@ module ticketing::events {
         rewards: vector<Reward>
     }
 
-    struct AttendanceRecord has store {
+    public struct AttendanceRecord has store {
         event_id: ID,
         ticket_type: String,
         attendance_time: u64,
@@ -150,7 +150,7 @@ module ticketing::events {
         rating: Option<u8>
     }
 
-    struct Reward has store {
+    public struct Reward has store {
         name: String,
         description: String,
         value: u64,
