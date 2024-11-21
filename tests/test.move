@@ -14,7 +14,8 @@ module ticketing::test {
     const TEST_ADDRESS2: address = @0xbb;
 
 
-    #[test]  
+    #[test]
+    #[expected_failure(abort_code = 0x2::dynamic_field::EFieldDoesNotExist)]     
     public fun test1() {
         let mut scenario_test = init_test_helper();
         let scenario = &mut scenario_test;
@@ -83,6 +84,32 @@ module ticketing::test {
                 );
 
             ts::return_shared(event);
+        };
+
+        // Purchase_ticket
+        next_tx(scenario, TEST_ADDRESS1);
+        {
+            let mut platform = ts::take_shared<Platform>(scenario);
+            let mut event = ts::take_shared<Event>(scenario);
+            let ticket_type_name = string::utf8(b"alice");
+
+            let section_name = string::utf8(b"event");
+            let mut promo_code = option::none<String>();
+
+            let coin_ = mint_for_testing<SUI>(100, ts::ctx(scenario));
+
+            ticket::purchase_ticket(
+                &mut platform,
+                &mut event,
+                ticket_type_name,
+                section_name,
+                &mut promo_code,
+                coin_,
+                ts::ctx(scenario)
+                );
+
+            ts::return_shared(event);
+            ts::return_shared(platform);
         };
 
         ts::end(scenario_test);

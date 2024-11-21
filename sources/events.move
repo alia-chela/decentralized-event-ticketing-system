@@ -202,7 +202,6 @@ module ticketing::events {
             access_rules: vector::empty()
         };
 
-
         let event = Event {
             id: object::new(ctx),
             organizer: tx_context::sender(ctx),
