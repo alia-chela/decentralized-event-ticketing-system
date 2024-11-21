@@ -4,7 +4,7 @@ module ticketing::test {
     use sui::coin::{mint_for_testing};
     use sui::sui::{SUI};
 
-    use std::string::{Self};
+    use std::string::{Self, String};
 
     use ticketing::helpers::init_test_helper;
     use ticketing::events::{Self as ticket, Platform, OrganizerProfile, Event, PromoCode, DynamicPricing};
@@ -27,7 +27,7 @@ module ticketing::test {
             ts::return_shared(platfrom);
         };
 
-        // tRegister as event organizer 
+        // Register as event organizer 
         next_tx(scenario, TEST_ADDRESS1);
         {
             let mut platfrom = ts::take_shared<Platform>(scenario);
@@ -38,6 +38,52 @@ module ticketing::test {
             ts::return_shared(platfrom);
         };
 
+        // create_event
+        next_tx(scenario, TEST_ADDRESS1);
+        {
+            let platfrom = ts::take_shared<Platform>(scenario);
+            let name = string::utf8(b"alice");
+            let description = string::utf8(b"event");
+
+            let start_time:u64 = 0;
+            let end_time: u64 = 100;
+            let max_capacity: u64 = 50;
+
+            ticket::create_event(&platfrom, name, description, start_time, end_time, max_capacity, ts::ctx(scenario));
+
+            ts::return_shared(platfrom);
+        };
+
+        // Add ticket type to event
+        next_tx(scenario, TEST_ADDRESS1);
+        {
+            let mut event = ts::take_shared<Event>(scenario);
+            let name = string::utf8(b"alice");
+            let base_price: u64 = 100;
+            let benefits = vector::empty<String>();
+            let transferable = true;
+            let resellable = true;
+            let max_resell_price = option::some<u64>(100);
+            let quantity: u64 = 100;
+            let valid_from: u64 = 50;
+            let valid_until = option::some<u64>(100);
+
+            ticket::add_ticket_type(
+                &mut event,
+                name,
+                base_price,
+                benefits,
+                transferable,
+                resellable,
+                max_resell_price,
+                quantity,
+                valid_from,
+                valid_until,
+                ts::ctx(scenario)
+                );
+
+            ts::return_shared(event);
+        };
 
         ts::end(scenario_test);
     }

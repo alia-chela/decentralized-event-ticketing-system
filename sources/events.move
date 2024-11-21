@@ -187,7 +187,6 @@ module ticketing::events {
         platform: &Platform,
         name: String,
         description: String,
-        venue: Venue,
         start_time: u64,
         end_time: u64,
         max_capacity: u64,
@@ -195,6 +194,15 @@ module ticketing::events {
     ) {
         assert!(linked_table::contains(&platform.organizers, tx_context::sender(ctx)), ENotOrganizer);
         
+        let venue = Venue {
+            name: description,
+            location: description,
+            sections: linked_table::new(ctx),
+            amenities: vector::empty(),
+            access_rules: vector::empty()
+        };
+
+
         let event = Event {
             id: object::new(ctx),
             organizer: tx_context::sender(ctx),
