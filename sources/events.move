@@ -4,12 +4,7 @@ module ticketing::events {
     use sui::balance::{Self, Balance};
     use sui::linked_table::{Self, LinkedTable};
     use std::string::String;
-    use sui::object::{Self, ID, UID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
-    use std::vector;
-    use std::option::{Self, Option};
-
+    
     // Error codes
     const ENotOrganizer: u64 = 0;
     const EEventNotFound: u64 = 1;
