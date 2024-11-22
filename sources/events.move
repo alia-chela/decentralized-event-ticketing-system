@@ -4,11 +4,6 @@ module ticketing::events {
     use sui::balance::{Self, Balance};
     use sui::linked_table::{Self, LinkedTable};
     use std::string::String;
-    use sui::object::{Self, ID, UID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
-    use std::vector;
-    use std::option::{Self, Option};
 
     // Error codes
     const ENotOrganizer: u64 = 0;
@@ -305,6 +300,18 @@ module ticketing::events {
         transfer::transfer(ticket, tx_context::sender(ctx));
     }
 
+    // fun apply_dynamic_pricing(
+    // base_price: u64,
+    // dynamic_pricing: &DynamicPricing,
+    // event: &Event,
+    // ctx: &mut TxContext
+    // ): u64 {
+    //     let time_multiplier = linked_table::borrow(&dynamic_pricing.time_multipliers, tx_context::epoch(ctx));
+    //     let demand_multiplier = linked_table::borrow(&dynamic_pricing.demand_multipliers, event.current_sales);
+    //     let adjusted_price = base_price * dynamic_pricing.base_multiplier * time_multiplier / 10000 * demand_multiplier / 10000;
+    //     std::math::max(adjusted_price, dynamic_pricing.min_price)
+    // }
+
     // Calculate ticket price based on various factors
     fun calculate_ticket_price(
         event: &Event,
@@ -361,7 +368,7 @@ module ticketing::events {
         vector::push_back(&mut ticket.transfer_history, transfer_record);
         ticket.owner = to;
         
-        transfer::transfer(ticket, to);
+        // transfer::transfer(ticket, to);
     }
 
     // Use ticket at event
