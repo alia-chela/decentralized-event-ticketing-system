@@ -7,16 +7,16 @@ module ticketing::events {
     
     // Error codes
     const ENotOrganizer: u64 = 0;
-    const EEventNotFound: u64 = 1;
-    const ETicketNotFound: u64 = 2;
+    // const EEventNotFound: u64 = 1;
+    // const ETicketNotFound: u64 = 2;
     const EInsufficientFunds: u64 = 3;
     const EEventSoldOut: u64 = 4;
-    const ETicketExpired: u64 = 5;
-    const EInvalidPromoCode: u64 = 6;
+    // const ETicketExpired: u64 = 5;
+    // const EInvalidPromoCode: u64 = 6;
     const ETicketAlreadyUsed: u64 = 7;
     const EInvalidTransfer: u64 = 8;
     const EEventCancelled: u64 = 9;
-    const EInvalidRefund: u64 = 10;
+    // const EInvalidRefund: u64 = 10;
 
     // Core structs
     public struct Platform has key {
@@ -50,7 +50,6 @@ module ticketing::events {
         current_sales: u64,
         revenue: Balance<SUI>,
         cancelled: bool,
-        dynamic_pricing: Option<DynamicPricing>,
         nft_benefits: Option<NFTBenefits>
     }
 
@@ -92,16 +91,8 @@ module ticketing::events {
         purchase_price: u64,
         purchase_time: u64,
         used: bool,
-        transfer_history: vector<TransferRecord>,
         qr_code: vector<u8>,
         metadata: LinkedTable<String, String>
-    }
-
-    public struct TransferRecord has store {
-        from: address,
-        to: address,
-        price: u64,
-        timestamp: u64
     }
 
     public struct PromoCode has store {
@@ -111,14 +102,6 @@ module ticketing::events {
         used: u64,
         valid_until: u64,
         specific_ticket_types: Option<vector<String>>
-    }
-
-    public struct DynamicPricing has store {
-        base_multiplier: u64,
-        time_multipliers: LinkedTable<u64, u64>,
-        demand_multipliers: LinkedTable<u64, u64>,
-        min_price: u64,
-        max_price: u64
     }
 
     public struct NFTBenefits has store {
@@ -216,7 +199,6 @@ module ticketing::events {
             current_sales: 0,
             revenue: balance::zero(),
             cancelled: false,
-            dynamic_pricing: option::none(),
             nft_benefits: option::none()
         };
         
@@ -298,7 +280,6 @@ module ticketing::events {
             purchase_price: final_price,
             purchase_time: tx_context::epoch(ctx),
             used: false,
-            transfer_history: vector::empty(),
             qr_code: generate_qr_code(ctx),
             metadata: linked_table::new(ctx)
         };
@@ -319,7 +300,7 @@ module ticketing::events {
     ): u64 {
         // Apply section multiplier
         let section = linked_table::borrow(&event.venue.sections, section_name);
-        let mut new_base_price = base_price * section.price_multiplier / 100;
+        let mut _new_base_price = base_price * section.price_multiplier / 100;
         
         // Apply promo code if valid
         if (option::is_some(promo_code)) {
@@ -327,7 +308,7 @@ module ticketing::events {
             if (linked_table::contains(&event.promo_codes, code)) {
                 let promo = linked_table::borrow_mut(&mut event.promo_codes, code);
                 if (promo.used < promo.max_uses && tx_context::epoch(ctx) < promo.valid_until) {
-                    new_base_price = base_price * (100 - promo.discount_percentage) / 100;
+                    _new_base_price = base_price * (100 - promo.discount_percentage) / 100;
                     promo.used = promo.used + 1;
                 };
             };
@@ -345,11 +326,10 @@ module ticketing::events {
         assert!(ticket.owner == tx_context::sender(ctx), EInvalidTransfer);
         
         ticket.used = true;
-        // Additional validation logic would go here
     }
 
     // Generate QR code (simplified)
-    fun generate_qr_code(ctx: &mut TxContext): vector<u8> {
+    fun generate_qr_code(_ctx: &mut TxContext): vector<u8> {
         // In a real implementation, this would generate a proper QR code
         vector[1, 2, 3, 4]
     }
