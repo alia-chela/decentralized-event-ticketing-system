@@ -4,7 +4,7 @@ module ticketing::events {
     use sui::balance::{Self, Balance};
     use sui::linked_table::{Self, LinkedTable};
     use std::string::String;
-
+    
     // Error codes
     const ENotOrganizer: u64 = 0;
     const EEventNotFound: u64 = 1;
@@ -187,7 +187,6 @@ module ticketing::events {
         platform: &Platform,
         name: String,
         description: String,
-        venue: Venue,
         start_time: u64,
         end_time: u64,
         max_capacity: u64,
@@ -195,6 +194,14 @@ module ticketing::events {
     ) {
         assert!(linked_table::contains(&platform.organizers, tx_context::sender(ctx)), ENotOrganizer);
         
+        let venue = Venue {
+            name: description,
+            location: description,
+            sections: linked_table::new(ctx),
+            amenities: vector::empty(),
+            access_rules: vector::empty()
+        };
+
         let event = Event {
             id: object::new(ctx),
             organizer: tx_context::sender(ctx),
@@ -254,17 +261,19 @@ module ticketing::events {
         event: &mut Event,
         ticket_type_name: String,
         section_name: String,
-        promo_code: Option<String>,
+        promo_code: &mut Option<String>,
         payment: Coin<SUI>,
         ctx: &mut TxContext
     ) {
         assert!(!event.cancelled, EEventCancelled);
         let ticket_type = linked_table::borrow_mut(&mut event.ticket_types, ticket_type_name);
+        let base_price = ticket_type.base_price;
         assert!(ticket_type.sold < ticket_type.quantity, EEventSoldOut);
-        
+        ticket_type.sold = ticket_type.sold + 1;
+
         let final_price = calculate_ticket_price(
             event,
-            ticket_type,
+            base_price,
             section_name,
             promo_code,
             ctx
@@ -273,7 +282,7 @@ module ticketing::events {
         assert!(coin::value(&payment) >= final_price, EInsufficientFunds);
         
         // Process payment
-        let payment_balance = coin::into_balance(payment);
+        let mut payment_balance = coin::into_balance(payment);
         let platform_fee = balance::split(&mut payment_balance, final_price * platform.fee_percentage / 10000);
         balance::join(&mut platform.revenue, platform_fee);
         balance::join(&mut event.revenue, payment_balance);
@@ -293,82 +302,38 @@ module ticketing::events {
             qr_code: generate_qr_code(ctx),
             metadata: linked_table::new(ctx)
         };
-        
-        ticket_type.sold = ticket_type.sold + 1;
+
+
         event.current_sales = event.current_sales + 1;
         
         transfer::transfer(ticket, tx_context::sender(ctx));
     }
 
-    // fun apply_dynamic_pricing(
-    // base_price: u64,
-    // dynamic_pricing: &DynamicPricing,
-    // event: &Event,
-    // ctx: &mut TxContext
-    // ): u64 {
-    //     let time_multiplier = linked_table::borrow(&dynamic_pricing.time_multipliers, tx_context::epoch(ctx));
-    //     let demand_multiplier = linked_table::borrow(&dynamic_pricing.demand_multipliers, event.current_sales);
-    //     let adjusted_price = base_price * dynamic_pricing.base_multiplier * time_multiplier / 10000 * demand_multiplier / 10000;
-    //     std::math::max(adjusted_price, dynamic_pricing.min_price)
-    // }
-
-    // Calculate ticket price based on various factors
+        // Calculate ticket price based on various factors
     fun calculate_ticket_price(
-        event: &Event,
-        ticket_type: &TicketType,
+        event: &mut Event,
+        base_price: u64,
         section_name: String,
-        promo_code: Option<String>,
-        ctx: &mut TxContext
+        promo_code: &mut Option<String>,
+        ctx: &TxContext
     ): u64 {
-        let base_price = ticket_type.base_price;
-        
         // Apply section multiplier
         let section = linked_table::borrow(&event.venue.sections, section_name);
-        base_price = base_price * section.price_multiplier / 100;
-        
-        // Apply dynamic pricing if enabled
-        if (option::is_some(&event.dynamic_pricing)) {
-            let dynamic_pricing = option::borrow(&event.dynamic_pricing);
-            base_price = apply_dynamic_pricing(base_price, dynamic_pricing, event, ctx);
-        };
+        let mut new_base_price = base_price * section.price_multiplier / 100;
         
         // Apply promo code if valid
-        if (option::is_some(&promo_code)) {
-            let code = option::extract(&mut promo_code);
+        if (option::is_some(promo_code)) {
+            let code = option::extract(promo_code);
             if (linked_table::contains(&event.promo_codes, code)) {
                 let promo = linked_table::borrow_mut(&mut event.promo_codes, code);
                 if (promo.used < promo.max_uses && tx_context::epoch(ctx) < promo.valid_until) {
-                    base_price = base_price * (100 - promo.discount_percentage) / 100;
+                    new_base_price = base_price * (100 - promo.discount_percentage) / 100;
                     promo.used = promo.used + 1;
                 };
             };
         };
         
         base_price
-    }
-
-    // Transfer ticket to another address
-    public fun transfer_ticket(
-        ticket: &mut Ticket,
-        to: address,
-        price: Option<u64>,
-        ctx: &mut TxContext
-    ) {
-        assert!(!ticket.used, ETicketAlreadyUsed);
-        let from = tx_context::sender(ctx);
-        assert!(ticket.owner == from, EInvalidTransfer);
-        
-        let transfer_record = TransferRecord {
-            from,
-            to,
-            price: option::get_with_default(&price, 0),
-            timestamp: tx_context::epoch(ctx)
-        };
-        
-        vector::push_back(&mut ticket.transfer_history, transfer_record);
-        ticket.owner = to;
-        
-        // transfer::transfer(ticket, to);
     }
 
     // Use ticket at event
